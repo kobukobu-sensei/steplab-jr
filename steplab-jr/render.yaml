@@ -1,0 +1,22 @@
+# Render Blueprint — リポジトリ接続時に自動でサービス構成を提案します
+# 注意: persistent disk(データ永続化)は有料のStarterプラン以上で有効です。
+# Freeプランで試す場合は disk: の3行を削除してください(再起動でデータが消えます)。
+services:
+  - type: web
+    name: steplab-jr
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true   # 安全なランダム値を自動生成
+      - key: DATA_DIR
+        value: /data
+      # AIチャットを本物のClaudeにする場合は、ダッシュボードから
+      # ANTHROPIC_API_KEY を追加してください(未設定でも動作します)
+    disk:
+      name: steplab-data
+      mountPath: /data
+      sizeGB: 1
