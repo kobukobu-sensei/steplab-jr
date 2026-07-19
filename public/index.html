@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>STEP LAB. Jr. — AIといっしょに学ぶ 小学生の学習プラットフォーム</title>
+<meta name="description" content="小学校の国語・算数・英語をAIといっしょに学べる学習サイト。学ぶ→練習→テスト→復習のステップでクリアしよう！">
+<meta name="theme-color" content="#5b5bd6">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a href="#main" class="skip-link">本文へスキップ</a>
+
+<header class="topbar" id="topbar" hidden>
+  <a href="#/home" class="brand" aria-label="ホームへ">
+    <span class="brand-mark" aria-hidden="true">▲</span>
+    <span class="brand-name">STEP LAB.<small>Jr.</small></span>
+  </a>
+  <nav class="topnav" aria-label="メイン">
+    <a href="#/home" data-nav="home"><span aria-hidden="true">🏠</span><span class="nav-label">ホーム</span></a>
+    <a href="#/learn" data-nav="learn"><span aria-hidden="true">📚</span><span class="nav-label">学ぶ</span></a>
+    <a href="#/reviews" data-nav="reviews"><span aria-hidden="true">🔁</span><span class="nav-label">復習</span></a>
+    <a href="#/mypage" data-nav="mypage"><span aria-hidden="true">🧑‍🚀</span><span class="nav-label">マイページ</span></a>
+    <a href="#/settings" data-nav="settings"><span aria-hidden="true">⚙️</span><span class="nav-label">せってい</span></a>
+  </nav>
+</header>
+
+<main id="main" class="main" tabindex="-1"></main>
+
+<!-- AIチャット(常時右下) -->
+<button id="chatFab" class="chat-fab" hidden aria-label="こぶこぶ先生に質問する">💬</button>
+<section id="chatPanel" class="chat-panel" hidden aria-label="AIチャット">
+  <header class="chat-head">
+    <span class="chat-avatar" aria-hidden="true">🤖</span>
+    <div><strong>こぶこぶ先生</strong><br><small>いつでも 質問してね</small></div>
+    <button id="chatClose" class="icon-btn" aria-label="チャットを閉じる">✕</button>
+  </header>
+  <div id="chatBody" class="chat-body" aria-live="polite"></div>
+  <div class="chat-suggests" id="chatSuggests">
+    <button class="chip" data-q="今日は何を勉強したらいい？">今日は何を勉強したらいい？</button>
+    <button class="chip" data-q="この単元がわからない">わからないところがある</button>
+    <button class="chip" data-q="テストまで3日だけど何をする？">テストまで3日！</button>
+  </div>
+  <form id="chatForm" class="chat-form">
+    <label class="sr-only" for="chatInput">質問を入力</label>
+    <input id="chatInput" type="text" placeholder="しつもんを かいてね" autocomplete="off" maxlength="500">
+    <button type="submit" class="btn btn-primary">送る</button>
+  </form>
+</section>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="/app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
