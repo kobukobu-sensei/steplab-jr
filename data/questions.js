@@ -400,7 +400,12 @@ function buildQuestions(unit, n, level, opts) {
     if (unit.gen && GEN[unit.gen]) q = GEN[unit.gen](level || 2);
     else if (unit.kanji && KANJI[unit.kanji]) q = kanjiQuestion(KANJI[unit.kanji]);
     else if (unit.vocab && VOCAB[unit.vocab]) q = vocabQuestion(VOCAB[unit.vocab]);
-    else if (unit.pool && POOLS[unit.pool]) { const pool = shuffle(POOLS[unit.pool]); q = pool.find(p => !seen.has(p.q)) || null; if (q) q = Object.assign({ t: 'choice' }, q); }
+    else if (unit.pool && POOLS[unit.pool]) {
+      const pool = shuffle(POOLS[unit.pool]);
+      q = pool.find(p => !seen.has(p.q)) || null;
+      // 固定プールは定義順のままだと正解が先頭に固定されるため、選択肢を必ずシャッフルする
+      if (q) q = Object.assign({ t: 'choice' }, q, q.c ? { c: shuffle(q.c) } : {});
+    }
     if (!q) break;
     if (seen.has(q.q)) continue;
     seen.add(q.q);
