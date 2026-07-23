@@ -13,10 +13,10 @@ services:
       - key: JWT_SECRET
         generateValue: true   # 安全なランダム値を自動生成
       - key: DATA_DIR
-        value: /data
+        value: /var/data
       # AIチャットを本物のClaudeにする場合は、ダッシュボードから
       # ANTHROPIC_API_KEY を追加してください(未設定でも動作します)
     disk:
       name: steplab-data
-      mountPath: /data
+      mountPath: /var/data
       sizeGB: 1

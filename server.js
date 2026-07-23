@@ -2,6 +2,7 @@
 // Node.js + Express + SQLite。ブラウザだけで利用できる独立Webサービス。
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -12,8 +13,18 @@ const { buildQuestions } = require('./data/questions');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
-if (!process.env.JWT_SECRET) console.warn('[warn] JWT_SECRET未設定: 再起動でログインが無効になります。本番では必ず環境変数で設定してください。');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'storage');
+let SECRET = process.env.JWT_SECRET;
+if (!SECRET) {
+  // 環境変数が無い場合は、一度生成した鍵をディスクに保存して再起動後も同じ鍵を使う
+  const keyFile = path.join(DATA_DIR, 'secret.key');
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (fs.existsSync(keyFile)) SECRET = fs.readFileSync(keyFile, 'utf8').trim();
+    if (!SECRET) { SECRET = crypto.randomBytes(32).toString('hex'); fs.writeFileSync(keyFile, SECRET, { mode: 0o600 }); }
+  } catch { SECRET = crypto.randomBytes(32).toString('hex'); }
+  console.warn('[warn] JWT_SECRET未設定: storage/secret.key に保存した鍵を使用します。');
+}
 
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
@@ -37,8 +48,14 @@ function auth(req, res, next) {
 const requireRole = (...roles) => (req, res, next) =>
   roles.includes(req.user.role) ? next() : res.status(403).json({ error: '権限がありません' });
 
+app.get('/api/health', (req, res) => {
+  const users = db.prepare('SELECT COUNT(*) n FROM users').get().n;
+  res.json({ ok: true, users, dataDir: DATA_DIR, persistent: !!process.env.DATA_DIR, uptimeSec: Math.round(process.uptime()) });
+});
 app.post('/api/auth/register', (req, res) => {
-  const { email, password, name, grade, role } = req.body || {};
+  const { password, name, grade, role } = req.body || {};
+  // スマホの自動入力は前後に空白が入ることがあるため、先に正規化してから検証する
+  const email = String((req.body || {}).email || '').toLowerCase().trim();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'メールアドレスの形式が正しくありません' });
   if (!password || password.length < 8) return res.status(400).json({ error: 'パスワードは8文字以上にしてください' });
   if (!name) return res.status(400).json({ error: 'なまえを入力してください' });
@@ -52,7 +69,7 @@ app.post('/api/auth/register', (req, res) => {
   }
   try {
     const info = db.prepare('INSERT INTO users(email,pass_hash,name,role,grade,class_code) VALUES(?,?,?,?,?,?)')
-      .run(email.toLowerCase().trim(), bcrypt.hashSync(password, 10), String(name).slice(0, 30), safeRole, g, cc);
+      .run(email, bcrypt.hashSync(password, 10), String(name).slice(0, 30), safeRole, g, cc);
     const user = db.prepare('SELECT * FROM users WHERE id=?').get(info.lastInsertRowid);
     setToken(res, user);
     res.json({ ok: true, user: publicUser(user) });
@@ -64,8 +81,10 @@ app.post('/api/auth/register', (req, res) => {
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body || {};
   const user = db.prepare('SELECT * FROM users WHERE email=?').get(String(email || '').toLowerCase().trim());
-  if (!user || !bcrypt.compareSync(password || '', user.pass_hash))
-    return res.status(401).json({ error: 'メールアドレスまたはパスワードがちがいます' });
+  if (!user)
+    return res.status(401).json({ error: 'このメールアドレスは登録されていません。サーバーのデータが初期化された可能性もあります(先生に連絡してください)' });
+  if (!bcrypt.compareSync(password || '', user.pass_hash))
+    return res.status(401).json({ error: 'パスワードがちがいます' });
   setToken(res, user);
   res.json({ ok: true, user: publicUser(user) });
 });

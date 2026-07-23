@@ -46,9 +46,9 @@ const routes = [];
 function route(pattern, fn) { routes.push({ pattern, fn }); }
 async function navigate() {
   const hash = location.hash.replace(/^#/, '') || '/home';
-  if (!ME && !hash.startsWith('/login') && !hash.startsWith('/reset')) { location.hash = '#/login'; return; }
-  if (ME?.role === 'teacher' && !hash.startsWith('/t/') && !hash.startsWith('/login') && !hash.startsWith('/reset')) { location.hash = ME.classCode ? '#/t/home' : '#/t/setup'; return; }
-  if (ME && ME.role !== 'teacher' && hash.startsWith('/t/')) { location.hash = '#/home'; return; }
+  if (!ME && !hash.startsWith('/login') && !hash.startsWith('/reset')) { location.replace('#/login'); return; }
+  if (ME?.role === 'teacher' && !hash.startsWith('/t/') && !hash.startsWith('/login') && !hash.startsWith('/reset')) { location.replace(ME.classCode ? '#/t/home' : '#/t/setup'); return; }
+  if (ME && ME.role !== 'teacher' && hash.startsWith('/t/')) { location.replace('#/home'); return; }
   for (const r of routes) {
     const m = hash.match(r.pattern);
     if (m) {
@@ -61,9 +61,14 @@ async function navigate() {
       return;
     }
   }
-  location.hash = '#/home';
+  location.replace('#/home');
 }
 window.addEventListener('hashchange', navigate);
+// 同じURLへのリンク(「もう一回」など)は hashchange が発火しないため、手動で再描画する
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href^="#/"]');
+  if (a && a.getAttribute('href') === location.hash) { e.preventDefault(); navigate(); }
+});
 
 /* ================= ログイン / 新規登録 ================= */
 route(/^\/login$/, () => {
@@ -245,7 +250,7 @@ route(/^\/unit\/([\w-]+)(?:\?(.*))?$/, async (unitId, qs) => {
   if (!CURR) CURR = await api('/curriculum');
   const params = new URLSearchParams(qs || '');
   const unit = CURR.units.find(u => u.id === unitId);
-  if (!unit) { location.hash = '#/learn'; return; }
+  if (!unit) { location.replace('#/learn'); return; }
   if (params.get('mode') === 'review') { startQuiz(unit, 'review', params.get('rid')); return; }
   const s = SUBJ[unit.subject];
   const st = unit.progress?.status;
